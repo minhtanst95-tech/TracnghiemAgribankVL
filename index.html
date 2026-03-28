@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hệ Thống Ôn Tập Trắc Nghiệm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root { 
+            --agri-red: #A61D37; 
+            --agri-green: #004A26; 
+        }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        .bg-agri-red { background-color: var(--agri-red); }
+        .text-agri-red { color: var(--agri-red); }
+        .bg-agri-green { background-color: var(--agri-green); }
+        .text-agri-green { color: var(--agri-green); }
+        .border-agri-green { border-color: var(--agri-green); }
+
+        /* Trạng thái đáp án */
+        .choice-correct { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; }
+        .choice-wrong { background-color: var(--agri-red) !important; color: white !important; border-color: #821226 !important; }
+        
+        /* Hiệu ứng Mobile */
+        .sticky-stats { box-shadow: 0 -4px 15px rgba(0,0,0,0.15); }
+        .content-padding { padding-bottom: 120px; }
+        .toast { transform: translateY(100px); transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        .toast.show { transform: translateY(0); }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+    <!-- HEADER (Không có chữ A) -->
+    <div class="bg-white py-5 shadow-md border-b-4 border-agri-green sticky top-0 z-30">
+        <div class="max-w-md mx-auto px-4 text-center">
+            <h1 class="text-xl font-black text-agri-red tracking-tighter uppercase italic leading-none">Hệ Thống Ôn Tập Online</h1>
+        </div>
+    </div>
+
+    <div class="max-w-md mx-auto p-4 content-padding">
+        
+        <!-- QUẢN LÝ DỮ LIỆU -->
+        <div id="setup-section" class="space-y-4 mt-2">
+            
+            <!-- Thống kê kho câu hỏi -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+                <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ngân hàng câu hỏi</p>
+                    <p class="text-2xl font-black text-agri-green"><span id="storage-count">0</span> Câu có sẵn</p>
+                </div>
+                <button onclick="clearAllData()" class="text-[10px] bg-red-50 text-agri-red font-black px-3 py-2 rounded-lg hover:bg-red-100 uppercase transition">Xóa hết</button>
+            </div>
+
+            <!-- Nạp file & Bắt đầu -->
+            <div class="bg-white p-6 rounded-3xl shadow-xl border border-gray-50 text-center">
+                <input type="file" id="fileInput" accept=".xlsx, .xls" class="hidden"/>
+                <div class="grid grid-cols-1 gap-4">
+                    <button onclick="document.getElementById('fileInput').click()" class="bg-agri-green text-white text-sm font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
+                        <span>📥</span> NẠP THÊM CÂU HỎI (EXCEL)
+                    </button>
+                    <button id="start-btn" class="bg-agri-red text-white text-sm font-bold py-4 rounded-2xl shadow-lg disabled:opacity-30 disabled:grayscale active:scale-95 transition uppercase tracking-widest" disabled>
+                        Bắt đầu ôn tập ngay
+                    </button>
+                </div>
+                <p class="text-[10px] text-gray-400 mt-4 italic">Dữ liệu được tự lưu trên trình duyệt này</p>
+            </div>
+
+            <!-- Cấu hình bài thi (Mặc định 100 câu - 100 phút) -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 grid grid-cols-2 gap-6">
+                <div class="space-y-1">
+                    <label class="block text-[10px] font-black text-gray-400 uppercase text-center">Số câu hỏi</label>
+                    <input type="number" id="limitInput" value="100" class="w-full border-b-2 border-gray-100 p-2 outline-none focus:border-agri-red font-bold text-xl text-center">
+                </div>
+                <div class="space-y-1">
+                    <label class="block text-[10px] font-black text-gray-400 uppercase text-center">Số phút</label>
+                    <input type="number" id="timeInput" value="100" class="w-full border-b-2 border-gray-100 p-2 outline-none focus:border-agri-red font-bold text-xl text-center">
+                </div>
+            </div>
+        </div>
+
+        <!-- MÀN HÌNH LÀM BÀI -->
+        <div id="quiz-section" class="hidden">
+            <div class="flex justify-between items-end mb-4 px-2">
+                <div id="timer-text" class="text-4xl font-black text-agri-red font-mono leading-none">00:00</div>
+                <button onclick="confirmSubmit()" class="text-[10px] font-black bg-gray-200 text-gray-600 px-4 py-2 rounded-full uppercase">Nộp bài</button>
+            </div>
+
+            <div class="bg-white p-6 rounded-3xl shadow-2xl border border-gray-50 min-h-[380px] flex flex-col justify-center relative overflow-hidden">
+                <div id="timer-bar" class="absolute top-0 left-0 h-2 bg-agri-green transition-all duration-1000 rounded-t-3xl" style="width: 100%"></div>
+                <p id="question-text" class="text-lg font-bold text-gray-800 leading-snug mb-8"></p>
+                <div id="options-list" class="space-y-3"></div>
+            </div>
+
+            <div class="flex justify-between mt-6 px-2">
+                <button id="prev-btn" class="font-bold text-gray-400 disabled:opacity-0 text-xs uppercase">← Quay lại</button>
+                <button id="next-btn" class="font-bold text-agri-red text-xs uppercase underline tracking-widest">Tiếp theo →</button>
+            </div>
+        </div>
+
+        <!-- MÀN HÌNH KẾT QUẢ -->
+        <div id="result-section" class="hidden">
+            <div class="bg-white p-8 rounded-3xl shadow-xl text-center border-t-8 border-agri-red">
+                <p class="text-gray-400 font-bold text-xs uppercase mb-2 tracking-widest">Kết quả ôn tập</p>
+                <div class="text-7xl font-black text-agri-red mb-6" id="final-score-text">0/0</div>
+                <button onclick="location.reload()" class="w-full bg-agri-green text-white py-4 rounded-2xl font-bold shadow-lg uppercase text-sm tracking-widest transition active:scale-95">Làm lại bài khác</button>
+            </div>
+            <div id="review-list" class="mt-8 space-y-4"></div>
+        </div>
+    </div>
+
+    <!-- THÔNG SỐ DƯỚI CÙNG (STICKY) -->
+    <div id="stats-bar" class="hidden fixed bottom-0 left-0 right-0 bg-white sticky-stats border-t-2 border-agri-green z-40">
+        <div class="max-w-md mx-auto grid grid-cols-3 py-5 px-4">
+            <div class="text-center border-r border-gray-100 leading-tight">
+                <p class="text-[9px] text-gray-400 font-black uppercase">Tiến độ</p>
+                <p class="font-black text-gray-700 text-xl"><span id="curr-idx-ui">0</span>/<span id="total-ui">0</span></p>
+            </div>
+            <div class="text-center border-r border-gray-100 leading-tight">
+                <p class="text-[9px] text-green-600 font-black uppercase">Đúng</p>
+                <p id="correct-stat" class="font-black text-green-600 text-xl">0</p>
+            </div>
+            <div class="text-center leading-tight">
+                <p class="text-[9px] text-agri-red font-black uppercase">Sai</p>
+                <p id="wrong-stat" class="font-black text-agri-red text-xl">0</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed bottom-28 left-1/2 -translate-x-1/2 bg-agri-green text-white px-8 py-4 rounded-2xl text-[11px] font-bold z-50 toast pointer-events-none uppercase tracking-widest shadow-2xl flex items-center gap-2">
+        <span>✅</span> <span id="toast-msg">Dữ liệu đã cập nhật!</span>
+    </div>
+
+    <script>
+        let allQuestions = []; 
+        let quizData = [];     
+        let userAnswers = [];
+        let currentIndex = 0;
+        let timer;
+        let timeLeft = 0;
+        let stats = { correct: 0, wrong: 0 };
+        let canAnswer = true;
+
+        window.onload = () => {
+            const savedData = localStorage.getItem('agri_quiz_vfinal');
+            if (savedData) {
+                allQuestions = JSON.parse(savedData);
+                updateUIStoreCount();
+            }
+        };
+
+        function updateUIStoreCount() {
+            const count = allQuestions.length;
+            document.getElementById('storage-count').innerText = count;
+            document.getElementById('start-btn').disabled = count === 0;
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const workbook = XLSX.read(new Uint8Array(event.target.result), { type: 'array' });
+                    const newQs = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                    if(newQs.length > 0) {
+                        allQuestions = [...allQuestions, ...newQs];
+                        localStorage.setItem('agri_quiz_vfinal', JSON.stringify(allQuestions));
+                        updateUIStoreCount();
+                        showToast(`Đã nạp thêm ${newQs.length} câu vào kho!`);
+                    }
+                } catch(err) {
+                    alert("Có lỗi khi đọc file!");
+                }
+            };
+            reader.readAsArrayBuffer(e.target.files[0]);
+            this.value = ''; 
+        });
+
+        function clearAllData() {
+            if(confirm("Xóa toàn bộ ngân hàng câu hỏi hiện tại?")) {
+                allQuestions = [];
+                localStorage.removeItem('agri_quiz_vfinal');
+                updateUIStoreCount();
+                showToast("Đã xóa sạch dữ liệu!");
+            }
+        }
+
+        function showToast(msg) {
+            document.getElementById('toast-msg').innerText = msg;
+            const t = document.getElementById('toast');
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        document.getElementById('start-btn').onclick = () => {
+            const limit = parseInt(document.getElementById('limitInput').value) || 100;
+            const timeMin = parseInt(document.getElementById('timeInput').value) || 100;
+            
+            // TỰ ĐỘNG XÁO TRỘN CÂU HỎI
+            quizData = [...allQuestions].sort(() => 0.5 - Math.random()).slice(0, Math.min(limit, allQuestions.length));
+            userAnswers = new Array(quizData.length).fill(null);
+            timeLeft = timeMin * 60;
+
+            document.getElementById('setup-section').classList.add('hidden');
+            document.getElementById('quiz-section').classList.remove('hidden');
+            document.getElementById('stats-bar').classList.remove('hidden');
+            document.getElementById('total-ui').innerText = quizData.length;
+
+            startTimer(timeLeft);
+            renderQuestion();
+        };
+
+        function startTimer(maxTime) {
+            const initial = maxTime;
+            timer = setInterval(() => {
+                timeLeft--;
+                let m = Math.floor(timeLeft / 60);
+                let s = timeLeft % 60;
+                document.getElementById('timer-text').innerText = `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+                document.getElementById('timer-bar').style.width = (timeLeft / initial) * 100 + "%";
+                if(timeLeft <= 0) { clearInterval(timer); finishQuiz(); }
+            }, 1000);
+        }
+
+        function renderQuestion() {
+            canAnswer = true;
+            const q = quizData[currentIndex];
+            document.getElementById('curr-idx-ui').innerText = currentIndex + 1;
+            document.getElementById('question-text').innerText = q.Question;
+            
+            const list = document.getElementById('options-list');
+            list.innerHTML = '';
+
+            ['A', 'B', 'C', 'D'].forEach(label => {
+                if(!q[label]) return;
+                const btn = document.createElement('button');
+                btn.className = "option-btn w-full text-left p-4 rounded-2xl border-2 border-slate-100 transition-all font-semibold flex items-center bg-white shadow-sm active:scale-95";
+                
+                if(userAnswers[currentIndex] !== null) {
+                    applyVisualFeedback(btn, label, q.Answer);
+                    btn.disabled = true;
+                }
+
+                btn.innerHTML = `<span class="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center mr-3 text-[10px] text-slate-400 font-black">${label}</span> <span class="flex-1 text-sm text-slate-700">${q[label]}</span>`;
+                btn.onclick = () => handleSelect(label, btn);
+                list.appendChild(btn);
+            });
+
+            document.getElementById('prev-btn').disabled = currentIndex === 0;
+            document.getElementById('next-btn').innerText = currentIndex === quizData.length - 1 ? "Xem kết quả" : "Câu tiếp →";
+        }
+
+        function handleSelect(label, btn) {
+            if(!canAnswer) return;
+            canAnswer = false;
+
+            const correctLabel = quizData[currentIndex].Answer.toString().toUpperCase().trim();
+            userAnswers[currentIndex] = label;
+
+            if(label === correctLabel) {
+                stats.correct++;
+                document.getElementById('correct-stat').innerText = stats.correct;
+                btn.classList.add('choice-correct');
+            } else {
+                stats.wrong++;
+                document.getElementById('wrong-stat').innerText = stats.wrong;
+                btn.classList.add('choice-wrong');
+                document.querySelectorAll('.option-btn').forEach(b => {
+                   if(b.querySelector('span:first-child').innerText === correctLabel) b.classList.add('choice-correct');
+                });
+            }
+
+            setTimeout(() => {
+                if(currentIndex < quizData.length - 1) {
+                    currentIndex++;
+                    renderQuestion();
+                } else { finishQuiz(); }
+            }, 1000);
+        }
+
+        function applyVisualFeedback(btn, label, correctLabel) {
+            const userChoice = userAnswers[currentIndex];
+            if(label === correctLabel) btn.classList.add('choice-correct');
+            else if(label === userChoice) btn.classList.add('choice-wrong');
+        }
+
+        document.getElementById('prev-btn').onclick = () => { if(currentIndex > 0) { currentIndex--; renderQuestion(); } };
+        document.getElementById('next-btn').onclick = () => { 
+            if(currentIndex < quizData.length - 1) { currentIndex++; renderQuestion(); } 
+            else confirmSubmit();
+        };
+
+        function confirmSubmit() { if(confirm("Nộp bài ngay để xem kết quả?")) finishQuiz(); }
+
+        function finishQuiz() {
+            clearInterval(timer);
+            document.getElementById('quiz-section').classList.add('hidden');
+            document.getElementById('stats-bar').classList.add('hidden');
+            document.getElementById('result-section').classList.remove('hidden');
+            document.getElementById('final-score-text').innerText = `${stats.correct}/${quizData.length}`;
+
+            const reviewList = document.getElementById('review-list');
+            reviewList.innerHTML = '<p class="font-black text-slate-400 text-[10px] uppercase mb-4 tracking-widest text-center">— Danh sách câu sai —</p>';
+            
+            quizData.forEach((q, i) => {
+                const isCorrect = userAnswers[i] === q.Answer.toString().toUpperCase().trim();
+                if(!isCorrect) {
+                    const card = document.createElement('div');
+                    card.className = "p-6 rounded-3xl bg-white shadow-sm border-l-8 border-agri-red mb-3";
+                    card.innerHTML = `
+                        <p class="font-bold text-slate-800 text-sm mb-2">${i+1}. ${q.Question}</p>
+                        <p class="text-[11px] text-agri-red font-bold uppercase italic">Bạn chọn: ${userAnswers[i] || 'Bỏ trống'}</p>
+                        <p class="text-[11px] text-agri-green font-black mt-1 uppercase">Đáp án đúng: ${q.Answer} — ${q[q.Answer]}</p>
+                    `;
+                    reviewList.appendChild(card);
+                }
+            });
+            if(stats.correct === quizData.length) reviewList.innerHTML = "<p class='text-center text-agri-green font-bold'>Xuất sắc! Bạn không sai câu nào.</p>";
+        }
+    </script>
+</body>
+</html>
