@@ -17,22 +17,20 @@
         .text-agri-red { color: var(--agri-red); }
         .bg-agri-green { background-color: var(--agri-green); }
         .text-agri-green { color: var(--agri-green); }
-        .border-agri-green { border-color: var(--agri-green); }
 
         /* Trạng thái đáp án */
         .choice-correct { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; }
         .choice-wrong { background-color: var(--agri-red) !important; color: white !important; border-color: #821226 !important; }
         
-        /* Hiệu ứng Mobile */
         .sticky-stats { box-shadow: 0 -4px 15px rgba(0,0,0,0.15); }
         .content-padding { padding-bottom: 120px; }
-        .toast { transform: translateY(100px); transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
-        .toast.show { transform: translateY(0); }
+        .toast { transform: translateY(100px); transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); opacity: 0; }
+        .toast.show { transform: translateY(0); opacity: 1; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
 
-    <!-- HEADER (Không có chữ A) -->
+    <!-- HEADER -->
     <div class="bg-white py-5 shadow-md border-b-4 border-agri-green sticky top-0 z-30">
         <div class="max-w-md mx-auto px-4 text-center">
             <h1 class="text-xl font-black text-agri-red tracking-tighter uppercase italic leading-none">Hệ Thống Ôn Tập Online</h1>
@@ -41,10 +39,9 @@
 
     <div class="max-w-md mx-auto p-4 content-padding">
         
-        <!-- QUẢN LÝ DỮ LIỆU -->
+        <!-- BƯỚC 1: MÀN HÌNH CÀI ĐẶT -->
         <div id="setup-section" class="space-y-4 mt-2">
             
-            <!-- Thống kê kho câu hỏi -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
                 <div>
                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ngân hàng câu hỏi</p>
@@ -53,7 +50,6 @@
                 <button onclick="clearAllData()" class="text-[10px] bg-red-50 text-agri-red font-black px-3 py-2 rounded-lg hover:bg-red-100 uppercase transition">Xóa hết</button>
             </div>
 
-            <!-- Nạp file & Bắt đầu -->
             <div class="bg-white p-6 rounded-3xl shadow-xl border border-gray-50 text-center">
                 <input type="file" id="fileInput" accept=".xlsx, .xls" class="hidden"/>
                 <div class="grid grid-cols-1 gap-4">
@@ -61,13 +57,12 @@
                         <span>📥</span> NẠP THÊM CÂU HỎI (EXCEL)
                     </button>
                     <button id="start-btn" class="bg-agri-red text-white text-sm font-bold py-4 rounded-2xl shadow-lg disabled:opacity-30 disabled:grayscale active:scale-95 transition uppercase tracking-widest" disabled>
-                        Bắt đầu ôn tập ngay
+                        Bắt đầu làm bài
                     </button>
                 </div>
-                <p class="text-[10px] text-gray-400 mt-4 italic">Dữ liệu được tự lưu trên trình duyệt này</p>
+                <p class="text-[10px] text-gray-400 mt-4 italic italic">Câu hỏi sẽ được lưu trên máy của bạn</p>
             </div>
 
-            <!-- Cấu hình bài thi (Mặc định 100 câu - 100 phút) -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 grid grid-cols-2 gap-6">
                 <div class="space-y-1">
                     <label class="block text-[10px] font-black text-gray-400 uppercase text-center">Số câu hỏi</label>
@@ -80,10 +75,10 @@
             </div>
         </div>
 
-        <!-- MÀN HÌNH LÀM BÀI -->
+        <!-- BƯỚC 2: MÀN HÌNH LÀM BÀI -->
         <div id="quiz-section" class="hidden">
             <div class="flex justify-between items-end mb-4 px-2">
-                <div id="timer-text" class="text-4xl font-black text-agri-red font-mono leading-none">00:00</div>
+                <div id="timer-text" class="text-4xl font-black text-agri-red font-mono leading-none">100:00</div>
                 <button onclick="confirmSubmit()" class="text-[10px] font-black bg-gray-200 text-gray-600 px-4 py-2 rounded-full uppercase">Nộp bài</button>
             </div>
 
@@ -94,23 +89,25 @@
             </div>
 
             <div class="flex justify-between mt-6 px-2">
-                <button id="prev-btn" class="font-bold text-gray-400 disabled:opacity-0 text-xs uppercase">← Quay lại</button>
+                <button id="prev-btn" class="font-bold text-gray-400 disabled:opacity-0 text-xs uppercase">← Câu trước</button>
                 <button id="next-btn" class="font-bold text-agri-red text-xs uppercase underline tracking-widest">Tiếp theo →</button>
             </div>
         </div>
 
-        <!-- MÀN HÌNH KẾT QUẢ -->
+        <!-- BƯỚC 3: MÀN HÌNH KẾT QUẢ -->
         <div id="result-section" class="hidden">
             <div class="bg-white p-8 rounded-3xl shadow-xl text-center border-t-8 border-agri-red">
-                <p class="text-gray-400 font-bold text-xs uppercase mb-2 tracking-widest">Kết quả ôn tập</p>
+                <p class="text-gray-400 font-bold text-xs uppercase mb-2 tracking-widest">Điểm số của bạn</p>
                 <div class="text-7xl font-black text-agri-red mb-6" id="final-score-text">0/0</div>
-                <button onclick="location.reload()" class="w-full bg-agri-green text-white py-4 rounded-2xl font-bold shadow-lg uppercase text-sm tracking-widest transition active:scale-95">Làm lại bài khác</button>
+                <button onclick="location.reload()" class="w-full bg-agri-green text-white py-4 rounded-2xl font-bold shadow-lg uppercase text-sm tracking-widest transition active:scale-95">Quay về trang chủ</button>
             </div>
+            
+            <!-- CHỈ HIỂN THỊ CÂU SAI Ở ĐÂY -->
             <div id="review-list" class="mt-8 space-y-4"></div>
         </div>
     </div>
 
-    <!-- THÔNG SỐ DƯỚI CÙNG (STICKY) -->
+    <!-- THANH THỐNG KÊ KHI LÀM BÀI -->
     <div id="stats-bar" class="hidden fixed bottom-0 left-0 right-0 bg-white sticky-stats border-t-2 border-agri-green z-40">
         <div class="max-w-md mx-auto grid grid-cols-3 py-5 px-4">
             <div class="text-center border-r border-gray-100 leading-tight">
@@ -128,9 +125,9 @@
         </div>
     </div>
 
-    <!-- TOAST NOTIFICATION -->
+    <!-- THÔNG BÁO (CHỈ HIỆN LÚC NẠP CÂU HỎI) -->
     <div id="toast" class="fixed bottom-28 left-1/2 -translate-x-1/2 bg-agri-green text-white px-8 py-4 rounded-2xl text-[11px] font-bold z-50 toast pointer-events-none uppercase tracking-widest shadow-2xl flex items-center gap-2">
-        <span>✅</span> <span id="toast-msg">Dữ liệu đã cập nhật!</span>
+        <span>✅</span> <span id="toast-msg">Đã nạp câu hỏi thành công!</span>
     </div>
 
     <script>
@@ -142,9 +139,10 @@
         let timeLeft = 0;
         let stats = { correct: 0, wrong: 0 };
         let canAnswer = true;
+        let isQuizRunning = false;
 
         window.onload = () => {
-            const savedData = localStorage.getItem('agri_quiz_vfinal');
+            const savedData = localStorage.getItem('agri_quiz_v_stable');
             if (savedData) {
                 allQuestions = JSON.parse(savedData);
                 updateUIStoreCount();
@@ -165,12 +163,15 @@
                     const newQs = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                     if(newQs.length > 0) {
                         allQuestions = [...allQuestions, ...newQs];
-                        localStorage.setItem('agri_quiz_vfinal', JSON.stringify(allQuestions));
+                        localStorage.setItem('agri_quiz_v_stable', JSON.stringify(allQuestions));
                         updateUIStoreCount();
-                        showToast(`Đã nạp thêm ${newQs.length} câu vào kho!`);
+                        // Chỉ hiển thị thông báo khi ở màn hình cài đặt
+                        if(!isQuizRunning) {
+                            showToast(`Đã nạp thêm ${newQs.length} câu vào kho!`);
+                        }
                     }
                 } catch(err) {
-                    alert("Có lỗi khi đọc file!");
+                    alert("Lỗi: Không thể đọc file Excel. Vui lòng kiểm tra lại định dạng.");
                 }
             };
             reader.readAsArrayBuffer(e.target.files[0]);
@@ -178,26 +179,28 @@
         });
 
         function clearAllData() {
-            if(confirm("Xóa toàn bộ ngân hàng câu hỏi hiện tại?")) {
+            if(confirm("Bạn có chắc chắn muốn xóa toàn bộ câu hỏi đã nạp?")) {
                 allQuestions = [];
-                localStorage.removeItem('agri_quiz_vfinal');
+                localStorage.removeItem('agri_quiz_v_stable');
                 updateUIStoreCount();
                 showToast("Đã xóa sạch dữ liệu!");
             }
         }
 
         function showToast(msg) {
+            if(isQuizRunning) return; // Không hiện khi đang làm bài
+            const toastEl = document.getElementById('toast');
             document.getElementById('toast-msg').innerText = msg;
-            const t = document.getElementById('toast');
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3000);
+            toastEl.classList.add('show');
+            setTimeout(() => toastEl.classList.remove('show'), 3000);
         }
 
         document.getElementById('start-btn').onclick = () => {
             const limit = parseInt(document.getElementById('limitInput').value) || 100;
             const timeMin = parseInt(document.getElementById('timeInput').value) || 100;
             
-            // TỰ ĐỘNG XÁO TRỘN CÂU HỎI
+            isQuizRunning = true;
+            // Xáo trộn
             quizData = [...allQuestions].sort(() => 0.5 - Math.random()).slice(0, Math.min(limit, allQuestions.length));
             userAnswers = new Array(quizData.length).fill(null);
             timeLeft = timeMin * 60;
@@ -227,7 +230,7 @@
             canAnswer = true;
             const q = quizData[currentIndex];
             document.getElementById('curr-idx-ui').innerText = currentIndex + 1;
-            document.getElementById('question-text').innerText = q.Question;
+            document.getElementById('question-text').innerText = (currentIndex + 1) + ". " + q.Question;
             
             const list = document.getElementById('options-list');
             list.innerHTML = '';
@@ -266,16 +269,20 @@
                 stats.wrong++;
                 document.getElementById('wrong-stat').innerText = stats.wrong;
                 btn.classList.add('choice-wrong');
+                // Hiện đáp án đúng
                 document.querySelectorAll('.option-btn').forEach(b => {
                    if(b.querySelector('span:first-child').innerText === correctLabel) b.classList.add('choice-correct');
                 });
             }
 
+            // Tự động chuyển câu sau 1s
             setTimeout(() => {
                 if(currentIndex < quizData.length - 1) {
                     currentIndex++;
                     renderQuestion();
-                } else { finishQuiz(); }
+                } else {
+                    finishQuiz();
+                }
             }, 1000);
         }
 
@@ -291,32 +298,43 @@
             else confirmSubmit();
         };
 
-        function confirmSubmit() { if(confirm("Nộp bài ngay để xem kết quả?")) finishQuiz(); }
+        function confirmSubmit() { if(confirm("Bạn muốn nộp bài ngay để xem kết quả?")) finishQuiz(); }
 
         function finishQuiz() {
             clearInterval(timer);
+            isQuizRunning = false;
             document.getElementById('quiz-section').classList.add('hidden');
             document.getElementById('stats-bar').classList.add('hidden');
             document.getElementById('result-section').classList.remove('hidden');
             document.getElementById('final-score-text').innerText = `${stats.correct}/${quizData.length}`;
 
             const reviewList = document.getElementById('review-list');
-            reviewList.innerHTML = '<p class="font-black text-slate-400 text-[10px] uppercase mb-4 tracking-widest text-center">— Danh sách câu sai —</p>';
-            
+            reviewList.innerHTML = ''; // Reset
+
+            let hasErrors = false;
             quizData.forEach((q, i) => {
                 const isCorrect = userAnswers[i] === q.Answer.toString().toUpperCase().trim();
+                
+                // CHỈ HIỂN THỊ NẾU SAI
                 if(!isCorrect) {
+                    if(!hasErrors) {
+                        reviewList.innerHTML = '<p class="font-black text-slate-400 text-[10px] uppercase mb-4 tracking-widest text-center">— DANH SÁCH CÁC CÂU LÀM SAI —</p>';
+                        hasErrors = true;
+                    }
                     const card = document.createElement('div');
                     card.className = "p-6 rounded-3xl bg-white shadow-sm border-l-8 border-agri-red mb-3";
                     card.innerHTML = `
                         <p class="font-bold text-slate-800 text-sm mb-2">${i+1}. ${q.Question}</p>
-                        <p class="text-[11px] text-agri-red font-bold uppercase italic">Bạn chọn: ${userAnswers[i] || 'Bỏ trống'}</p>
+                        <p class="text-[11px] text-agri-red font-bold uppercase italic">Bạn chọn: ${userAnswers[i] || 'Chưa chọn'}</p>
                         <p class="text-[11px] text-agri-green font-black mt-1 uppercase">Đáp án đúng: ${q.Answer} — ${q[q.Answer]}</p>
                     `;
                     reviewList.appendChild(card);
                 }
             });
-            if(stats.correct === quizData.length) reviewList.innerHTML = "<p class='text-center text-agri-green font-bold'>Xuất sắc! Bạn không sai câu nào.</p>";
+
+            if(!hasErrors) {
+                reviewList.innerHTML = "<p class='text-center text-agri-green font-bold text-lg p-10 bg-white rounded-3xl shadow-xl'>Xuất sắc! Bạn không làm sai câu nào.</p>";
+            }
         }
     </script>
 </body>
